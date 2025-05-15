@@ -9,8 +9,9 @@ class UserManager(BaseUserManager):
 
     def create_user(self, phone, password=None, **kwargs):
         if not phone:
-            raise ValueError(_("User phone-number is must be set"))
+            raise ValueError(_("User phone number must be set."))
 
+        phone = self.normalize_nigerian_phone(phone)
         user = self.model(phone=phone, **kwargs)
         user.set_password(password)
         user.save(using=self._db)
@@ -19,6 +20,14 @@ class UserManager(BaseUserManager):
 
     def create_superuser(self, phone, password=None, **kwargs):
         kwargs.setdefault("is_superuser", True)
-        kwargs.setdefault("is_verified", True)
+        kwargs.setdefault("is_staff", True)
+        kwargs.setdefault("is_active", True)
+        kwargs.setdefault("role", "admin")
 
         return self.create_user(phone, password, **kwargs)
+
+    def normalize_nigerian_phone(self, phone):
+        phone = phone.strip().replace(" ", "")
+        if phone.startswith("0") and len(phone) == 11:
+            return "+234" + phone[1:]
+        return phone

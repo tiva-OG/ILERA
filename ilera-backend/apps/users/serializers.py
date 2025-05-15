@@ -1,9 +1,15 @@
+from django.contrib.auth import authenticate
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework import serializers
+import re
 
 from .models import User, FarmerProfile, VetProfile
+from apps.core.fields import PhoneNumberField
+from apps.otp.services import OTPService
+from apps.core.utils.phone import normalize_nigerian_phone
 
 
+# ========================================== Farmer Profile ==========================================
 class FarmerProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = FarmerProfile
@@ -11,6 +17,7 @@ class FarmerProfileSerializer(serializers.ModelSerializer):
         read_only_fields = ["user"]
 
 
+# ========================================== Vet Profile ==========================================
 class VetProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = VetProfile
@@ -18,15 +25,13 @@ class VetProfileSerializer(serializers.ModelSerializer):
         read_only_fields = ["user"]
 
 
+# ========================================== User Profile ==========================================
 class UserProfileSerializer(serializers.ModelSerializer):
     profile = serializers.SerializerMethodField()
 
-    farmer_profile = FarmerProfileSerializer(read_only=True)
-    vet_profile = VetProfileSerializer(read_only=True)
-
     class Meta:
         model = User
-        fields = ["id", "phone_number", "first_name", "last_name", "email", "role", "is_active", "profile"]
+        fields = ["id", "phone", "first_name", "last_name", "email", "role", "is_active", "profile"]
 
     def get_profile(self, obj):
         if obj.is_farmer:
@@ -36,46 +41,57 @@ class UserProfileSerializer(serializers.ModelSerializer):
         return None
 
 
+# ========================================== User Signup ==========================================
 class UserSignupSerializer(serializers.ModelSerializer):
+    phone = PhoneNumberField()
     password = serializers.CharField(write_only=True)
-    role = serializers.ChoiceField(choices=[("farmer", "Farmer"), "vet", "Veterinarian"])
+    role = serializers.ChoiceField(choices=["farmer", "vet"])
+    otp_message = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = User
-        fields = ["phone_number", "first_name", "last_name", "email", "role", "password"]
+        fields = ["phone", "first_name", "last_name", "email", "role", "password", "otp_message"]
 
     def create(self, validated_data):
-        role = validated_data.pop("role")
-        user = User.objects.create_user(**validated_data)
+        password = validated_data.pop("password")
 
-        if role.lowercase() == "farmer":
-            user.is_farmer = True
-        elif role.lowercase() == "vet":
-            user.is_vet = True
+        user = User.objects.create_user(**validated_data)
+        user.set_password(password)
         user.save()
+
+        # generate and send otp
+        message = OTPService.send_otp(user.phone, email=user.email)
+        user.otp_message = message
 
         return user
 
+    def get_otp_message(self, obj):
+        return getattr(obj, "otp_message", None)
 
-class CustomObtainTokenPairSerializer(TokenObtainPairSerializer):
+
+# ========================================== Obtain Token ==========================================
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    phone = PhoneNumberField()
+    password = serializers.CharField()
+
     def validate(self, attrs):
-        phone = attrs.get("phone")
+        phone = normalize_nigerian_phone(attrs.get("phone"))
         password = attrs.get("password")
-        user = User.objects.filter(phone=phone).first()
 
-        if user and user.check_password(password):
-            if not user.is_active:
-                raise serializers.ValidationError("Inactive account")
+        user = authenticate(request=self.context.get("request"), phone=phone, password=password)
 
-            data = super().validate(attrs)
-            data["user"] = {"id": user.id, "phone": user.phone}
+        if not user:
+            raise serializers.ValidationError("Invalid credentials")
 
-            return data
-        raise serializers.ValidationError("Invalid phone or password")
+        if not user.is_active:
+            OTPService.send_otp(phone)
+            raise serializers.ValidationError("OTP sent. Please verify to activate your account.")
 
-    @classmethod
-    def get_token(cls, user):
-        token = super().get_token(user)
-        token["phone"] = user.phone
+        refresh = self.get_token(user)
+        access = refresh.access_token
 
-        return token
+        return {
+            "access": str(access),
+            "refresh": str(refresh),
+            "user": {"id": user.id, "phone": user.phone},
+        }

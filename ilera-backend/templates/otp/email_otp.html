@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ILERA OTP Code</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+
+        .logo-container {
+            text-align: center;
+            padding-top: 10px;
+        }
+
+        .logo {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #528C4A;
+            font-size: 40px;
+        }
+
+        p {
+            font-size: 28px;
+            color: white;
+            line-height: 1.5;
+            margin: 10px 0;
+        }
+
+        .code {
+          font-size: 36px;
+          font-weight: bold;
+          color: #2c3e50;
+          letter-spacing: 1px;
+          margin: 20px 0;
+      }
+
+        .footer {
+            text-align: center;
+            font-size: 14px;
+            color: #777;
+            margin-top: 30px;
+        }
+
+        .footer a {
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+  </head>
+
+  <body>
+    <div class="logo-container">
+      <img class="logo" src="https://i.imgur.com/dW3zAVZ.png" alt="ILERA Logo" />
+    </div>
+    <div class="container">
+      <h1 >Welcome to ILERA!</h1>
+      <p>Hello,</p>
+
+      <p>
+        Your OTP code is:
+      </p>
+      <div class="code">{{ code }}</div>
+      <p>This code will expire in 5 minutes. Please do not share it with anyone.</p>
+
+      <!-- Footer -->
+      <hr style="border: 0; border-top: 1px solid #ddd; margin: 20px 0;" />
+      <p style="font-size: 14px; color: #777; text-align: center;">
+        &copy; {{ year }} ILERA. All rights reserved.
+      </p>
+    </div>
+  </body>
+
+</html>

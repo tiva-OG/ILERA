@@ -1,27 +1,42 @@
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.db import models
-from django.utils import timezone
 import uuid
 
 from .managers import UserManager
 
 
 class User(AbstractBaseUser, PermissionsMixin):
+    ROLE_CHOICES = (
+        ("farmer", "Farmer"),
+        ("vet", "Veterinarian"),
+        ("admin", "Admin"),
+    )
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     phone = models.CharField(max_length=15, unique=True)
     email = models.EmailField(unique=True, null=True, blank=True)
     first_name = models.CharField(max_length=50)
     last_name = models.CharField(max_length=50)
-
-    is_farmer = models.BooleanField(default=False)
-    is_vet = models.BooleanField(default=False)
-    is_verified = models.BooleanField(default=False)
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES)
     date_joined = models.DateTimeField(auto_now_add=True)
+
+    is_active = models.BooleanField(default=False)
+
+    # removed from logic; kept for migration compatibility
+    is_superuser = models.BooleanField(default=False)
+    is_staff = models.BooleanField(default=False)
 
     USERNAME_FIELD = "phone"
     REQUIRED_FIELDS = []
 
     objects = UserManager()
+
+    @property
+    def is_farmer(self):
+        return self.role == "farmer"
+
+    @property
+    def is_vet(self):
+        return self.role == "vet"
 
 
 class FarmerProfile(models.Model):
@@ -42,8 +57,8 @@ class VetProfile(models.Model):
     bio = models.TextField(blank=True)
 
     rating = models.DecimalField(max_digits=3, decimal_places=1, null=True)
-    num_ratings = models.PositiveIntegerField()
-    license_number = models.CharField(max_length=50)
+    num_ratings = models.PositiveIntegerField(null=True)
+    license_number = models.CharField(max_length=50, blank=True, null=True)
 
     def __str__(self):
         return f"Vet Profile ({self.pk}): {self.user.phone}"
