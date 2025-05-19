@@ -47,14 +47,18 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    # extras
+    "corsheaders",
+    "django_filters",
     "rest_framework",
     "rest_framework_simplejwt.token_blacklist",
-    "corsheaders",
+    # apps
     "apps.livestock",
     "apps.notifications",
     "apps.otp",
     "apps.sensors",
     "apps.users",
+    "apps.vetcare",
 ]
 
 MIDDLEWARE = [

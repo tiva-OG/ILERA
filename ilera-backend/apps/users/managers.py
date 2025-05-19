@@ -22,7 +22,7 @@ class UserManager(BaseUserManager):
         kwargs.setdefault("is_superuser", True)
         kwargs.setdefault("is_staff", True)
         kwargs.setdefault("is_active", True)
-        kwargs.setdefault("role", "admin")
+        kwargs.setdefault("role", "ADMIN")
 
         return self.create_user(phone, password, **kwargs)
 
@@ -30,4 +30,6 @@ class UserManager(BaseUserManager):
         phone = phone.strip().replace(" ", "")
         if phone.startswith("0") and len(phone) == 11:
             return "+234" + phone[1:]
+        elif phone.startswith("234") and len(phone) == 13:
+            return "+" + phone
         return phone

@@ -1,12 +1,24 @@
 from django.conf import settings
 from django.db import transaction
-from rest_framework import generics, permissions, status, views
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters, generics, permissions, status, views
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
-from .models import User
-from .serializers import UserSignupSerializer, UserProfileSerializer, CustomTokenObtainPairSerializer, FarmerProfileSerializer, VetProfileSerializer
+from .models import User, FarmerProfile, VetProfile
+from .serializers import (
+    UserSignupSerializer,
+    UserProfileSerializer,
+    CustomTokenObtainPairSerializer,
+    FarmerOnboardingSerializer,
+    VetOnboardingSerializer,
+    FarmerProfileSerializer,
+    VetProfileSerializer,
+    VetListSerializer,
+)
+from apps.core.permissions import IsFarmer, IsVet
+from apps.vetcare.models import CareSession
 
 
 # ========================================== Create new user ==========================================
@@ -17,6 +29,28 @@ class UserSignupView(generics.CreateAPIView):
     def create(self, request, *args, **kwargs):
         response = super().create(request, *args, **kwargs)
         return Response({"user": response.data}, status=status.HTTP_201_CREATED)
+
+
+# ========================================== Onboard user ==========================================
+class UserOnboardingView(views.APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def patch(self, request, *args, **kwargs):
+        user = request.user
+
+        if user.is_farmer:
+            profile = user.farmer_profile
+            serializer = FarmerOnboardingSerializer(profile, data=request.data, partial=True)
+        elif user.is_vet:
+            profile = user.vet_profile
+            serializer = VetOnboardingSerializer(profile, data=request.data, partial=True)
+        else:
+            return Response({"detail": "User profile not found."}, status=404)
+
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(serializer.data, status=200)
 
 
 # ========================================== View and update user profile ==========================================
@@ -119,3 +153,24 @@ class LogoutView(views.APIView):
 
         except Exception as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+# ========================================== List Vets (for Farmers) ==========================================
+class VetListView(generics.ListAPIView):
+    queryset = VetProfile.objects.select_related("user").all()
+    serializer_class = VetListSerializer
+    permission_classes = [IsFarmer]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ["is_available"]
+
+# ========================================== List Farmers (for Vets) ==========================================
+class FarmerListView(generics.ListAPIView):
+    serializer_class = VetListSerializer
+    permission_classes = [IsVet]
+
+    def get_queryset(self):
+        user = self.request.user
+        active_sessions = CareSession.objects.filter(vet=user.vet_profile)
+        farmer_ids = active_sessions.values_list('farmer__user__id', flat=True)
+        
+        return FarmerProfile.objects.filter(user_id__in=farmer_ids)

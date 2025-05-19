@@ -1,29 +1,51 @@
+import uuid
+from datetime import date
 from django.db import models
 from django.contrib.auth import get_user_model
-from datetime import date
 
 User = get_user_model()
+
+# temperature (celsius)
+# heart rate (bpm) integer
+# blood oxygen level (%) integer
+# steps (integer)
+# 
+
+
+class Genders(models.TextChoices):
+    MALE = "MALE", "Male"
+    FEMALE = "FEMALE", "Female"
+    UNKNOWN = "UNKNOWN", "Unknown"
 
 
 class Livestock(models.Model):
     GENDER_CHOICES = (
-        ("male", "Male"),
-        ("female", "Female"),
-        ("unknown", "Unknown"),
+        ("MALE", "Male"),
+        ("FEMALE", "Female"),
+        ("UNKNOWN", "Unknown"),
     )
 
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="livestock")
-    category = models.CharField(max_length=50)
     tag_id = models.CharField(max_length=50, unique=True)
-    specie = models.CharField(max_length=50)
-    gender = models.CharField(max_length=10, choices=GENDER_CHOICES, default="unknown")
+    category = models.CharField(max_length=50)
+    breed = models.CharField(max_length=50)
+    gender = models.CharField(max_length=10, choices=Genders.choices, default=Genders.UNKNOWN)
     birth_year = models.PositiveIntegerField()
     image = models.ImageField(upload_to="livestock_images/", null=True, blank=True)
     registered_at = models.DateTimeField(auto_now_add=True)
+    is_archived = models.BooleanField(default=False)
+    # sensor = models.ForeignKey(, on_delete=models., related_name="assigned_requests") # to tracker
 
     @property
     def age(self):
         return date.today().year - self.birth_year
 
+    def get_fullname(self):
+        return f"{self.category} [{self.tag_id}]"
+
     def __str__(self):
         return f"{self.category} ({self.tag_id})"
+
+    class Meta:
+        ordering = ["tag_id", "registered_at"]
