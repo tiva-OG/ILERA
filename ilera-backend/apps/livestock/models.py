@@ -3,13 +3,9 @@ from datetime import date
 from django.db import models
 from django.contrib.auth import get_user_model
 
-User = get_user_model()
+# from apps.sensors.models import SensorDevice
 
-# temperature (celsius)
-# heart rate (bpm) integer
-# blood oxygen level (%) integer
-# steps (integer)
-#
+User = get_user_model()
 
 
 class Genders(models.TextChoices):
@@ -43,6 +39,13 @@ class Livestock(models.Model):
     @property
     def age(self):
         return date.today().year - self.birth_year
+
+    # @property
+    # def sensor_id(self):
+    #     try:
+    #         return self.sensor_device.device_id
+    #     except SensorDevice.DoesNotExist:
+    #         return None
 
     def get_fullname(self):
         return f"{self.category} [{self.tag_id}]"

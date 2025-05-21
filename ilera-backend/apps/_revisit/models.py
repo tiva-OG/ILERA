@@ -5,6 +5,8 @@ import uuid
 from apps.users.models import FarmerProfile, VetProfile
 from apps.livestock.models import Livestock
 
+# remove _revisit from git directories
+
 
 class Appointment(models.Model):
     STATUS_CHOICES = (
