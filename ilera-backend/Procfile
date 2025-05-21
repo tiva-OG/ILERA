@@ -1,0 +1,1 @@
+web: gunicorn ilera-backend.wsgi:application
