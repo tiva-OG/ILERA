@@ -13,16 +13,14 @@ from apps.core.utils.phone import normalize_nigerian_phone
 class FarmerProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = FarmerProfile
-        fields = "__all__"
-        read_only_fields = ["user"]
+        fields = ["bio", "location"]
 
 
 # ========================================== Vet Profile ==========================================
 class VetProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = VetProfile
-        fields = "__all__"
-        read_only_fields = ["user"]
+        fields = ["bio", "location", "license_number", "is_available"]
 
 
 # ========================================== User Profile ==========================================

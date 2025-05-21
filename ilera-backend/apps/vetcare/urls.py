@@ -5,8 +5,9 @@ from .views import CareSessionViewSet, HealthRecordViewSet
 
 router = DefaultRouter()
 
-router.register(r"sessions", CareSessionViewSet, basename="sessions")
-router.register(r"records", HealthRecordViewSet, basename="records")
+router.register(r"", CareSessionViewSet, basename="vetcare")
+# router.register(r"sessions", CareSessionViewSet, basename="sessions")
+# router.register(r"records", HealthRecordViewSet, basename="records")
 
 urlpatterns = [
     path("", include(router.urls)),

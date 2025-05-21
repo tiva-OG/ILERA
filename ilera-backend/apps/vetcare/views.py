@@ -7,6 +7,9 @@ from .serializers import CareSessionSerializer, HealthRecordSerializer, VetSessi
 from apps.core.permissions import IsFarmer, IsVet, RoleBasedPermissionMixin
 
 
+# let it be that if action in ['decline', 'cancel'] then instance be deleted
+
+
 class CareSessionViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
     serializer_class = CareSessionSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -50,10 +53,10 @@ class CareSessionViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
 
         # add control that session has to accepted
         if session.status != SessionStatus.ACCEPTED:
-            return Response({"error": "Bad Request..."}, status=400)
+            return Response({"error": "Bad Request"}, status=400)
 
         if (session.farmer.user != request.user) and (session.vet.user != request.user):
-            return Response({"error": "Unauthorized..."}, status=403)
+            return Response({"error": "Unauthorized"}, status=403)
 
         session.terminate()
         return Response({"status": "terminated"})

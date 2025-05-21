@@ -9,7 +9,7 @@ User = get_user_model()
 # heart rate (bpm) integer
 # blood oxygen level (%) integer
 # steps (integer)
-# 
+#
 
 
 class Genders(models.TextChoices):
@@ -18,13 +18,14 @@ class Genders(models.TextChoices):
     UNKNOWN = "UNKNOWN", "Unknown"
 
 
-class Livestock(models.Model):
-    GENDER_CHOICES = (
-        ("MALE", "Male"),
-        ("FEMALE", "Female"),
-        ("UNKNOWN", "Unknown"),
-    )
+class HealthStatus(models.TextChoices):
+    HEALTHY = "HEALTHY", "Healthy"
+    SICK = "SICK", "Sick"
+    TREATING = "TREATING", "Treating"
+    DEAD = "DEAD", "Dead"
 
+
+class Livestock(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="livestock")
     tag_id = models.CharField(max_length=50, unique=True)
@@ -34,7 +35,9 @@ class Livestock(models.Model):
     birth_year = models.PositiveIntegerField()
     image = models.ImageField(upload_to="livestock_images/", null=True, blank=True)
     registered_at = models.DateTimeField(auto_now_add=True)
-    is_archived = models.BooleanField(default=False)
+    health_status = models.CharField(max_length=20, choices=HealthStatus.choices, default=HealthStatus.HEALTHY)
+
+    # is_archived = models.BooleanField(default=False)
     # sensor = models.ForeignKey(, on_delete=models., related_name="assigned_requests") # to tracker
 
     @property
