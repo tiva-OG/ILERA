@@ -59,8 +59,9 @@ class UserSignupSerializer(serializers.ModelSerializer):
         user.save()
 
         # generate and send otp
-        # message = OTPService.send_otp(user.phone, email=user.email)
-        user.otp_message = "No need for the OTP during testing."
+        message = OTPService.send_otp(user.phone, email=user.email)
+        user.otp_message = message
+        # user.otp_message = "No need for the OTP during testing."
 
         return user
 
