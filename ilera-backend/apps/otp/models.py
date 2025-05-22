@@ -1,8 +1,10 @@
 from django.db import models
 from django.utils import timezone
 
+from apps.core.models import ULIDModel
 
-class OTPRequest(models.Model):
+
+class OTPRequest(ULIDModel):
     phone = models.CharField(max_length=15)
     code = models.CharField(max_length=6)
     created_at = models.DateTimeField(auto_now_add=True)

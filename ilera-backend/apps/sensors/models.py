@@ -1,10 +1,11 @@
 from django.db import models
 from django.utils import timezone
 
+from apps.core.models import ULIDModel
 from apps.livestock.models import Livestock
 
 
-class SensorDevice(models.Model):
+class SensorDevice(ULIDModel):
     device_id = models.CharField(max_length=100, unique=True)
     name = models.CharField(max_length=100, blank=True)
     livestock = models.OneToOneField(Livestock, on_delete=models.CASCADE, related_name="sensor_device")
@@ -19,7 +20,7 @@ class SensorDevice(models.Model):
         return f"{self.device_id} - {self.livestock.get_fullname()}"
 
 
-class SensorData(models.Model):
+class SensorData(ULIDModel):
     device = models.ForeignKey(SensorDevice, on_delete=models.CASCADE)
     temperature = models.FloatField(blank=True, null=True)
     heart_rate = models.IntegerField(blank=True, null=True)

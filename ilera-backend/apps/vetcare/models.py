@@ -2,6 +2,7 @@ import uuid
 from django.db import models
 from django.utils import timezone
 
+from apps.core.models import ULIDModel
 from apps.livestock.models import Livestock
 from apps.users.models import FarmerProfile, VetProfile
 
@@ -20,8 +21,8 @@ class RecordType(models.TextChoices):
     VACCINATION = "VACCINATION", "Vaccination"
 
 
-class CareSession(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+class CareSession(ULIDModel):
+    # id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     farmer = models.ForeignKey(FarmerProfile, on_delete=models.CASCADE, related_name="sessions")
     vet = models.ForeignKey(VetProfile, on_delete=models.CASCADE, related_name="sessions")
     status = models.CharField(max_length=20, choices=SessionStatus.choices, default=SessionStatus.PENDING)
@@ -67,7 +68,7 @@ class CareSession(models.Model):
         self.save()
 
 
-class HealthRecord(models.Model):
+class HealthRecord(ULIDModel):
     session = models.ForeignKey(CareSession, on_delete=models.CASCADE)
     livestock = models.ForeignKey(Livestock, on_delete=models.CASCADE, related_name="records")
     record_type = models.CharField(max_length=15, choices=RecordType.choices)

@@ -1,3 +1,9 @@
 from django.db import models
+from .fields import ULIDField
 
-# Create your models here.
+
+class ULIDModel(models.Model):
+    id = ULIDField()
+
+    class Meta:
+        abstract = True

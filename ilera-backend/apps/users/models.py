@@ -3,6 +3,7 @@ from django.db import models
 import uuid
 
 from .managers import UserManager
+from apps.core.models import ULIDModel
 
 
 class UserRole(models.TextChoices):
@@ -11,8 +12,8 @@ class UserRole(models.TextChoices):
     ADMIN = "ADMIN", "Admin"
 
 
-class User(AbstractBaseUser, PermissionsMixin):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+class User(AbstractBaseUser, PermissionsMixin, ULIDModel):
+    # id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     phone = models.CharField(max_length=15, unique=True)
     email = models.EmailField(unique=True, null=True, blank=True)
     first_name = models.CharField(max_length=50)
@@ -65,9 +66,6 @@ class VetProfile(models.Model):
     bio = models.TextField(blank=True)
     license_number = models.CharField(unique=True, max_length=50, blank=True, null=True)
     is_available = models.BooleanField(default=True)
-
-    # rating = models.DecimalField(max_digits=3, decimal_places=1, null=True)
-    # num_ratings = models.PositiveIntegerField(null=True)
 
     class Meta:
         verbose_name = "Vet Profile"

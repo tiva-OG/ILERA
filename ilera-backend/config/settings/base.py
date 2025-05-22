@@ -1,6 +1,5 @@
 import os
 import environ
-import dj_database_url
 from pathlib import Path
 from datetime import timedelta
 
@@ -67,9 +66,9 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 # ASGI_APPLICATION = "config.asgi.application"
 
-DATABASES = {
-    "default": env.db(),
-}
+# DATABASES = {
+#     "default": env.db(),
+# }
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -96,7 +95,8 @@ STATIC_URL = "static/"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
-DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+# DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 AUTH_USER_MODEL = "users.User"
 
 CORS_ALLOW_ALL_ORIGINS = True

@@ -3,7 +3,7 @@ from datetime import date
 from django.db import models
 from django.contrib.auth import get_user_model
 
-# from apps.sensors.models import SensorDevice
+from apps.core.models import ULIDModel
 
 User = get_user_model()
 
@@ -21,9 +21,10 @@ class HealthStatus(models.TextChoices):
     DEAD = "DEAD", "Dead"
 
 
-class Livestock(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="livestock")
+class Livestock(ULIDModel):
+    # id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    # owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="livestock")
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="livestock", to_field="id", db_column="owner_id")
     tag_id = models.CharField(max_length=50, unique=True)
     category = models.CharField(max_length=50)
     breed = models.CharField(max_length=50)
@@ -33,19 +34,9 @@ class Livestock(models.Model):
     registered_at = models.DateTimeField(auto_now_add=True)
     health_status = models.CharField(max_length=20, choices=HealthStatus.choices, default=HealthStatus.HEALTHY)
 
-    # is_archived = models.BooleanField(default=False)
-    # sensor = models.ForeignKey(, on_delete=models., related_name="assigned_requests") # to tracker
-
     @property
     def age(self):
         return date.today().year - self.birth_year
-
-    # @property
-    # def sensor_id(self):
-    #     try:
-    #         return self.sensor_device.device_id
-    #     except SensorDevice.DoesNotExist:
-    #         return None
 
     def get_fullname(self):
         return f"{self.category} [{self.tag_id}]"
