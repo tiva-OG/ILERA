@@ -1,6 +1,6 @@
 from django.urls import path
-from .views import post_sensor_data
+from .views import SensorDataListCreateView
 
 urlpatterns = [
-    path("data/", post_sensor_data),
+    path("data/", SensorDataListCreateView.as_view(), name="sensor-data-list-create"),
 ]
