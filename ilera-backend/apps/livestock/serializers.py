@@ -69,7 +69,7 @@ class LivestockWriteSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         owner = self.context["request"].user
         age = validated_data.pop("age")
-        sensor_id = validated_data.pop("tracker_id", None)
+        sensor_id = validated_data.pop("sensor_id", None)
         validated_data["birth_year"] = date.today().year - age
 
         livestock = Livestock.objects.create(owner=owner, **validated_data)
@@ -84,7 +84,7 @@ class LivestockWriteSerializer(serializers.ModelSerializer):
             age = validated_data.pop("age")
             validated_data["birth_year"] = date.today().year - age
 
-        sensor_id = validated_data.pop("tracker_id", None)
+        sensor_id = validated_data.pop("sensor_id", None)
         livestock = super().update(instance, validated_data)
 
         if sensor_id:
