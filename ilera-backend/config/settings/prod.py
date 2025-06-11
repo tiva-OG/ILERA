@@ -2,8 +2,9 @@ from .base import *
 from decouple import config
 import dj_database_url
 
-DEBUG = False
+DEBUG = True
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=[])
+# ALLOWED_HOSTS = ["*"]
 
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SECURE = True
