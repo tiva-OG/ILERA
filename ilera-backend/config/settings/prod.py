@@ -10,6 +10,15 @@ CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SECURE = True
 SIMPLE_JWT["AUTH_COOKIE_SECURE"] = True
 
+INSTALLED_APPS += ["cloudinary", "cloudinary_storage"]
+DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
+CLOUDINARY_STORAGE = {
+    "CLOUD_NAME": env("CLOUD_NAME"),
+    "API_KEY": env("CLOUD_API_KEY"),
+    "API_SECRET": env("CLOUD_API_SECRET"),
+}
+
+
 MIDDLEWARE += [
     "whitenoise.middleware.WhiteNoiseMiddleware",
 ]
