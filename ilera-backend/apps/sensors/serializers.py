@@ -1,13 +1,13 @@
 from rest_framework import serializers
-from .models import SensorDevice, SensorData
+from .models import SensorDevice, SensorReading
 
 
-class SensorDataSerializer(serializers.ModelSerializer):
+class SensorReadingSerializer(serializers.ModelSerializer):
     device_id = serializers.CharField(write_only=True)
 
     class Meta:
-        model = SensorData
-        fields = ["device_id", "temperature", "heart_rate", "blood_oxygen_level", "steps"]
+        model = SensorReading
+        fields = ["device_id", "temperature", "heart_rate", "blood_oxygen", "steps", "battery_level", "timestamp"]
 
     def create(self, validated_data):
         device_id = validated_data.pop("device_id")
@@ -17,4 +17,4 @@ class SensorDataSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Unknown device ID")
 
         device.update_heartbeat()
-        return SensorData.objects.create(device=device, **validated_data)
+        return SensorReading.objects.create(device=device, **validated_data)

@@ -1,9 +1,6 @@
-from datetime import timedelta
-from django.utils import timezone
 import random
-
 from .models import OTPRequest
-from apps.notifications.sms_backends import SMSClient, EmailClient
+from .clients import SMSClient, EmailClient
 
 
 class OTPService:
@@ -21,13 +18,13 @@ class OTPService:
     @classmethod
     def _send_via_email(cls, email, code):
         EmailClient.send_email(email, code)
-        return f"OTP sent to email: {email}"
+        return f"sent to your email {email}"
 
     @classmethod
     def _send_via_sms(cls, phone, code):
         message = f"Your ILERA verification code is {code}. It expires in {cls.EXPIRY_MINUTES} minutes. \nDon't share with anyone!"
         SMSClient.send_sms(phone, message)
-        return f"OTP sent via SMS to phone: {phone}"
+        return f"via SMS to {phone}"
 
     @classmethod
     def send_otp(cls, phone, email=None):

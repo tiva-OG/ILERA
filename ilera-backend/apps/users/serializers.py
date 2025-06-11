@@ -1,9 +1,8 @@
-from django.contrib.auth import authenticate
+from django.contrib.auth import authenticate, hashers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework import serializers
-import re
 
-from .models import User, UserRole, FarmerProfile, VetProfile
+from .models import PendingUser, User, UserRole, FarmerProfile, VetProfile
 from apps.core.fields import PhoneNumberField
 from apps.otp.services import OTPService
 from apps.core.utils.phone import normalize_nigerian_phone
@@ -13,14 +12,14 @@ from apps.core.utils.phone import normalize_nigerian_phone
 class FarmerProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = FarmerProfile
-        fields = ["bio", "location"]
+        fields = ["bio", "location", "profile_picture"]
 
 
 # ========================================== Vet Profile ==========================================
 class VetProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = VetProfile
-        fields = ["bio", "location", "license_number", "is_available"]
+        fields = ["bio", "location", "license_number", "is_available", "profile_picture"]
 
 
 # ========================================== User Profile ==========================================
@@ -51,22 +50,67 @@ class UserSignupSerializer(serializers.ModelSerializer):
         fields = ["phone", "first_name", "last_name", "email", "role", "password", "otp_message"]
 
     def create(self, validated_data):
-        password = validated_data.pop("password")
+        # password = validated_data.pop("password")
+        phone = validated_data.get("phone")
+        # validate existing user here! it doesn't sit well in PhoneNumberField
 
-        user = User.objects.create_user(**validated_data)
-        user.set_password(password)
-        user.is_active = True
-        user.save()
+        if User.objects.filter(phone=phone).exists():
+            raise serializers.ValidationError("This phone number is already registered with ILERA.")
+
+        if PendingUser.objects.filter(phone=phone).exists():
+            PendingUser.objects.filter(phone=phone).delete()
+
+        # validated_data["password"] = hashers.make_password(validated_data["password"])
+
+        pending_user = PendingUser.objects.create(**validated_data)
 
         # generate and send otp
-        message = OTPService.send_otp(user.phone, email=user.email)
-        user.otp_message = message
-        # user.otp_message = "No need for the OTP during testing."
+        message = OTPService.send_otp(pending_user.phone, email=pending_user.email)
+        pending_user.otp_message = message
 
-        return user
+        return pending_user
 
     def get_otp_message(self, obj):
         return getattr(obj, "otp_message", None)
+
+
+class UserVerifyOTPSerializer(serializers.Serializer):
+    phone = PhoneNumberField()
+    code = serializers.CharField()
+
+    def validate(self, attrs):
+        phone = normalize_nigerian_phone(attrs.get("phone"))
+        code = attrs.get("code")
+
+        try:
+            pending_user = PendingUser.objects.get(phone=phone)
+        except PendingUser.DoesNotExist:
+            raise serializers.ValidationError("No pending signup found.")
+
+        if pending_user.is_expired():
+            raise serializers.ValidationError("OTP expired.")
+
+        result = OTPService.verify_otp(phone, code)
+
+        if result["success"]:
+            if User.objects.filter(phone=pending_user.phone).exists():
+                raise serializers.ValidationError("User already exists.")
+
+            user = User.objects.create_user(
+                phone=pending_user.phone,
+                email=pending_user.email,
+                first_name=pending_user.first_name,
+                last_name=pending_user.last_name,
+                role=pending_user.role,
+            )
+            user.set_password(pending_user.password)
+            user.is_active = True
+            user.save()
+            pending_user.delete()
+
+            return attrs
+        else:
+            raise serializers.ValidationError(result["detail"])
 
 
 # ========================================== Farmer Onboarding ==========================================
@@ -115,10 +159,54 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 class VetListSerializer(serializers.ModelSerializer):
     id = serializers.UUIDField(source="user.id", read_only=True)
     fullname = serializers.CharField(source="user.get_fullname", read_only=True)
-    email = serializers.EmailField(source="user.email", read_only=True)
     phone = PhoneNumberField(source="user.phone", read_only=True)
+    email = serializers.EmailField(source="user.email", read_only=True)
+    session = serializers.SerializerMethodField()
 
     class Meta:
         model = VetProfile
-        fields = ["id", "fullname", "phone", "email", "location", "bio", "is_available"]
-        read_only_fields = fields
+        fields = ["id", "fullname", "phone", "email", "location", "bio", "license_number", "is_available", "profile_picture", "session"]
+
+    def get_session(self, vet):
+        sessions = getattr(vet, "sessions_with_farmer", [])
+
+        if sessions:
+            session = sessions[0]
+            return {
+                "id": session.id,
+                "status": session.status,
+                "created_at": session.created_at,
+                "started_at": session.started_at,
+                "ended_at": session.ended_at,
+                "has_history": session.has_history,
+            }
+
+        return None
+
+
+class FarmerListSerializer(serializers.ModelSerializer):
+    id = serializers.UUIDField(source="user.id", read_only=True)
+    fullname = serializers.CharField(source="user.get_fullname", read_only=True)
+    phone = PhoneNumberField(source="user.phone", read_only=True)
+    email = serializers.EmailField(source="user.email", read_only=True)
+    session = serializers.SerializerMethodField()
+
+    class Meta:
+        model = FarmerProfile
+        fields = ["id", "fullname", "phone", "email", "location", "bio", "profile_picture", "session"]
+
+    def get_session(self, vet):
+        sessions = getattr(vet, "sessions_with_vet", [])
+
+        if sessions:
+            session = sessions[0]
+            return {
+                "id": session.id,
+                "status": session.status,
+                "created_at": session.created_at,
+                "started_at": session.started_at,
+                "ended_at": session.ended_at,
+                "has_history": session.has_history,
+            }
+
+        return None

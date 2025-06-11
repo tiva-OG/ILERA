@@ -20,13 +20,15 @@ class SensorDevice(ULIDModel):
         return f"{self.device_id} - {self.livestock.get_fullname()}"
 
 
-class SensorData(ULIDModel):
+class SensorReading(ULIDModel):
     device = models.ForeignKey(SensorDevice, on_delete=models.CASCADE)
     temperature = models.FloatField(blank=True, null=True)
     heart_rate = models.IntegerField(blank=True, null=True)
-    blood_oxygen_level = models.IntegerField(blank=True, null=True)
+    blood_oxygen = models.IntegerField(blank=True, null=True)
     steps = models.IntegerField(blank=True, null=True)
+    battery_level = models.IntegerField(blank=True, null=True)
     timestamp = models.DateTimeField(auto_now_add=True)
+    # status
 
     def __str__(self):
-        return f"Data from {self.device.device_id} @ {self.timestamp}"
+        return f"Reading from {self.device.device_id} @ {self.timestamp}"

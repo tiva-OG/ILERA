@@ -1,15 +1,21 @@
-from rest_framework import permissions
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework import generics, permissions
 from rest_framework.response import Response
 
-from .serializers import SensorDataSerializer
+from .models import SensorReading
+from .serializers import SensorReadingSerializer
 
 
-@api_view(["POST"])
-@permission_classes([permissions.AllowAny])
-def post_sensor_data(request):
-    serializer = SensorDataSerializer(data=request.data)
-    if serializer.is_valid():
-        serializer.save()
-        return Response({"status": "ok"}, status=201)
-    return Response(serializer.errors, status=400)
+class SensorReadingListCreateView(generics.ListCreateAPIView):
+    serializer_class = SensorReadingSerializer
+
+    def get_permissions(self):
+        if self.request.method == "GET":
+            return [permissions.IsAuthenticated()]
+        return [permissions.AllowAny()]
+
+    def get_queryset(self):
+        user = self.request.user
+        device_id = self.request.query_params.get("device_id")
+
+        queryset = SensorReading.objects.filter(device__device_id=device_id, device__livestock__owner=user).order_by("-timestamp")[:150]
+        return queryset

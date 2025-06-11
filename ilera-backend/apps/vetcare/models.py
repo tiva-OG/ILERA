@@ -11,8 +11,7 @@ class SessionStatus(models.TextChoices):
     PENDING = "PENDING", "Pending"
     ACCEPTED = "ACCEPTED", "Accepted"
     DECLINED = "DECLINED", "Declined"
-    CANCELLED = "CANCELLED", "Cancelled"
-    TERMINATED = "TERMINATED", "Terminated"
+    CONCLUDED = "CONCLUDED", "Concluded"
 
 
 class RecordType(models.TextChoices):
@@ -22,13 +21,13 @@ class RecordType(models.TextChoices):
 
 
 class CareSession(ULIDModel):
-    # id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     farmer = models.ForeignKey(FarmerProfile, on_delete=models.CASCADE, related_name="sessions")
     vet = models.ForeignKey(VetProfile, on_delete=models.CASCADE, related_name="sessions")
-    status = models.CharField(max_length=20, choices=SessionStatus.choices, default=SessionStatus.PENDING)
+    status = models.CharField(max_length=20, choices=SessionStatus.choices, default=SessionStatus.PENDING, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     started_at = models.DateTimeField(null=True, blank=True)
     ended_at = models.DateTimeField(null=True, blank=True)
+    has_history = models.BooleanField(default=False)
 
     class Meta:
         indexes = [
@@ -42,7 +41,7 @@ class CareSession(ULIDModel):
 
     @property
     def is_active(self):
-        return self.status == SessionStatus.ACCEPTED
+        return self.status in [SessionStatus.ACCEPTED, SessionStatus.PENDING]
 
     @property
     def farmer_livestock(self):
@@ -54,14 +53,14 @@ class CareSession(ULIDModel):
         self.started_at = timezone.now()
         self.save()
 
-    def terminate(self):
-        self.status = SessionStatus.TERMINATED
+    def conclude(self):
+        self.status = None
+        self.has_history = True
         self.ended_at = timezone.now()
         self.save()
 
     def cancel(self):
-        self.status = SessionStatus.CANCELLED
-        self.save()
+        self.delete()
 
     def decline(self):
         self.status = SessionStatus.DECLINED

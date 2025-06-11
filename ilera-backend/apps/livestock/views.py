@@ -55,6 +55,7 @@ class LivestockViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
         queryset = self.get_queryset()
 
         data = queryset.values("category").annotate(count=Count("id")).order_by("category")
-        result = {item["category"]: item["count"] for item in data}
+        result = {item["category"].title(): item["count"] for item in data}
+        result["All"] = sum(item["count"] for item in data)
 
-        return Response(result, status=200)
+        return Response(dict(sorted(result.items())), status=200)

@@ -5,9 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ILERA OTP Code</title>
     <style>
+
+      :root {
+        --bg-color: #ffffff;
+        --text-color: #1a1a1a;
+        --container-bg: #f9f9f9;
+        --heading-color: #528C4A;
+        --code-color: #2d2d2d;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg-color: #121212;
+          --text-color: #f0f0f0;
+          --container-bg: #1e1e1e;
+          --heading-color: #88c87c;
+          --code-color: #ffffff;
+        }
+      }
         body {
             font-family: 'Arial', sans-serif;
-            background-color: #f4f4f4;
+            background-color: var(--bg-color);
+            color: var(--text-color);
             margin: 0;
             padding: 0;
         }
@@ -27,7 +46,7 @@
             max-width: 600px;
             margin: 20px auto;
             padding: 20px;
-            background-color: #ffffff;
+            background-color: var(--container-bg);
             border-radius: 8px;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         }
@@ -35,27 +54,30 @@
         h1 {
             text-align: center;
             color: #528C4A;
-            font-size: 40px;
+            color: var(--heading-color);
+            font-size: 2rem; /* ~32px */
+            margin-bottom: 20px;
         }
 
         p {
-            font-size: 28px;
-            color: white;
-            line-height: 1.5;
+            font-size: 1rem; /* ~16px */
+            line-height: 1.6;
             margin: 10px 0;
+            color: var(--text-color);
         }
 
         .code {
-          font-size: 36px;
+          font-size: 1.5rem; /* ~24px */
           font-weight: bold;
-          color: #2c3e50;
-          letter-spacing: 1px;
+          color: var(--code-color);
+          text-align: center;
           margin: 20px 0;
+          letter-spacing: 1px;
       }
 
         .footer {
             text-align: center;
-            font-size: 14px;
+            font-size: 1rem;
             color: #777;
             margin-top: 30px;
         }
@@ -77,13 +99,10 @@
     </div>
     <div class="container">
       <h1 >Welcome to ILERA!</h1>
-      <p>Hello,</p>
+      <p>Hello! Here's your ILERA OTP for verification:</p>
 
-      <p>
-        Your OTP code is:
-      </p>
       <div class="code">{{ code }}</div>
-      <p>This code will expire in 5 minutes. Please do not share it with anyone.</p>
+      <p>This code will expire in 10 minutes. Please do not share it with anyone.</p>
 
       <!-- Footer -->
       <hr style="border: 0; border-top: 1px solid #ddd; margin: 20px 0;" />

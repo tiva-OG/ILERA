@@ -1,14 +1,19 @@
 from django.conf import settings
 from django.db import transaction
-from django_filters.rest_framework import DjangoFilterBackend
+from django.db.models import Prefetch, Q
+from django.shortcuts import get_object_or_404
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework import filters, generics, permissions, status, views
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+
 
 from .models import User, FarmerProfile, VetProfile
 from .serializers import (
     UserSignupSerializer,
+    UserVerifyOTPSerializer,
     UserProfileSerializer,
     CustomTokenObtainPairSerializer,
     FarmerOnboardingSerializer,
@@ -16,9 +21,11 @@ from .serializers import (
     FarmerProfileSerializer,
     VetProfileSerializer,
     VetListSerializer,
+    FarmerListSerializer,
 )
+from apps.vetcare.models import CareSession, SessionStatus
 from apps.core.permissions import IsFarmer, IsVet
-from apps.vetcare.models import CareSession
+from apps.core.utils.phone import normalize_nigerian_phone
 
 
 # ========================================== Create new user ==========================================
@@ -28,22 +35,35 @@ class UserSignupView(generics.CreateAPIView):
 
     def create(self, request, *args, **kwargs):
         response = super().create(request, *args, **kwargs)
-        return Response({"user": response.data}, status=status.HTTP_201_CREATED)
+        return Response({"user": response.data}, status=201)
+
+
+# ========================================== Verify user signup OTP ==========================================
+class UserVerifyOTPView(views.APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        serializer = UserVerifyOTPSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        return Response({"detail": "OTP verified successfully."}, status=status.HTTP_200_OK)
 
 
 # ========================================== Onboard user ==========================================
 class UserOnboardingView(views.APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
 
     def patch(self, request, *args, **kwargs):
-        user = request.user
+        phone = request.data.get("phone")
+        profile_data = request.data.get("profile")
+        user = User.objects.get(phone=normalize_nigerian_phone(phone))
 
         if user.is_farmer:
-            profile = user.farmer_profile
-            serializer = FarmerOnboardingSerializer(profile, data=request.data, partial=True)
+            farmer_profile = user.farmer_profile
+            serializer = FarmerOnboardingSerializer(farmer_profile, data=profile_data, partial=True)
         elif user.is_vet:
-            profile = user.vet_profile
-            serializer = VetOnboardingSerializer(profile, data=request.data, partial=True)
+            vet_profile = user.vet_profile
+            serializer = VetOnboardingSerializer(vet_profile, data=profile_data, partial=True)
         else:
             return Response({"detail": "User profile not found."}, status=404)
 
@@ -58,6 +78,7 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
     queryset = User.objects.all()
     serializer_class = UserProfileSerializer
     permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
 
     def get_object(self):
         return self.request.user
@@ -65,22 +86,34 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
     @transaction.atomic
     def update(self, request, *args, **kwargs):
         user = self.get_object()
+
         user_serializer = self.get_serializer(user, data=request.data, partial=True)
         user_serializer.is_valid(raise_exception=True)
         user_serializer.save()
 
         # update the nested profile provided
-        profile_data = request.data.get("profile")
+        profile_data = {}
+        profile_prefix = "profile"
+
+        for key in request.data:
+            if key.startswith(profile_prefix) or key == "profile_picture":
+                profile_data[key] = request.data[key]
+
         if profile_data:
             if user.is_farmer:
                 profile = user.farmer_profile
-                profile_serializer = FarmerProfileSerializer(profile, data=profile_data, partial=True)
+                serializer_class = FarmerProfileSerializer
             elif user.is_vet:
                 profile = user.vet_profile
-                profile_serializer = VetProfileSerializer(profile, data=profile_data, partial=True)
+                serializer_class = VetProfileSerializer
             else:
                 return Response({"detail": "Unknown user role."}, status=400)
 
+            new_image = profile_data.get("profile_picture")
+            if new_image and profile.profile_picture and profile.profile_picture != new_image:
+                profile.profile_picture.delete(save=False)
+
+            profile_serializer = serializer_class(profile, data=profile_data, partial=True)
             profile_serializer.is_valid(raise_exception=True)
             profile_serializer.save()
 
@@ -94,7 +127,7 @@ class CustomTokenObtainPairView(TokenObtainPairView):
     def post(self, request, *args, **kwargs):
         response = super().post(request, *args, **kwargs)
 
-        refresh_token = response.data.pop("refresh", None)
+        refresh_token = response.data.get("refresh", None)
 
         if refresh_token:
             response.set_cookie(
@@ -156,21 +189,91 @@ class LogoutView(views.APIView):
 
 
 # ========================================== List Vets (for Farmers) ==========================================
-class VetListView(generics.ListAPIView):
-    queryset = VetProfile.objects.select_related("user").all()
-    serializer_class = VetListSerializer
-    permission_classes = [IsFarmer]
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = ["is_available"]
 
-# ========================================== List Farmers (for Vets) ==========================================
-class FarmerListView(generics.ListAPIView):
+
+class VetListView(generics.ListAPIView):
+    permission_classes = [IsFarmer]
     serializer_class = VetListSerializer
-    permission_classes = [IsVet]
 
     def get_queryset(self):
-        user = self.request.user
-        active_sessions = CareSession.objects.filter(vet=user.vet_profile)
-        farmer_ids = active_sessions.values_list('farmer__user__id', flat=True)
-        
-        return FarmerProfile.objects.filter(user_id__in=farmer_ids)
+        farmer = self.request.user.farmer_profile
+        queryset = VetProfile.objects.select_related("user").prefetch_related(
+            Prefetch("sessions", queryset=CareSession.objects.filter(farmer=farmer), to_attr="sessions_with_farmer")
+        )
+
+        return queryset
+
+    def get_serializer_context(self):
+        return {"request": self.request}
+
+
+class VetDetailView(generics.RetrieveAPIView):
+    permission_classes = [IsFarmer]
+    serializer_class = VetListSerializer
+    lookup_url_kwarg = "vet_id"
+
+    def get_queryset(self):
+        farmer = self.request.user.farmer_profile
+        queryset = VetProfile.objects.select_related("user").prefetch_related(
+            Prefetch("sessions", queryset=CareSession.objects.filter(farmer=farmer), to_attr="sessions_with_farmer")
+        )
+
+        return queryset
+
+    def get_object(self):
+        queryset = self.get_queryset()
+        vet_id = self.kwargs.get(self.lookup_url_kwarg)
+        return get_object_or_404(queryset, user__id=vet_id)
+
+
+class FarmerListView(generics.ListAPIView):
+    permission_classes = [IsVet]
+    serializer_class = FarmerListSerializer
+
+    def get_queryset(self):
+        vet = self.request.user.vet_profile
+        sessions = (
+            CareSession.objects.filter(vet=vet)
+            .filter(Q(status__in=[SessionStatus.ACCEPTED, SessionStatus.PENDING]) | Q(has_history=True))
+            .order_by("-created_at")
+        )
+
+        queryset = (
+            FarmerProfile.objects.select_related("user")
+            .prefetch_related(Prefetch("sessions", queryset=sessions, to_attr="sessions_with_vet"))
+            .filter(sessions__in=sessions)
+            .distinct()
+        )
+
+        return queryset
+
+    def get_serializer_context(self):
+        return {"request": self.request}
+
+
+class FarmerDetailView(generics.RetrieveAPIView):
+    permission_classes = [IsVet]
+    serializer_class = FarmerListSerializer
+    lookup_url_kwarg = "farmer_id"
+
+    def get_queryset(self):
+        vet = self.request.user.vet_profile
+        sessions = (
+            CareSession.objects.filter(vet=vet)
+            .filter(Q(status__in=[SessionStatus.ACCEPTED, SessionStatus.PENDING]) | Q(has_history=True))
+            .order_by("-created_at")
+        )
+
+        queryset = (
+            FarmerProfile.objects.select_related("user")
+            .prefetch_related(Prefetch("sessions", queryset=sessions, to_attr="sessions_with_vet"))
+            .filter(sessions__in=sessions)
+            .distinct()
+        )
+
+        return queryset
+
+    def get_object(self):
+        queryset = self.get_queryset()
+        farmer_id = self.kwargs.get(self.lookup_url_kwarg)
+        return get_object_or_404(queryset, user__id=farmer_id)

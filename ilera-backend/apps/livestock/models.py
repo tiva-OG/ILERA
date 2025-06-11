@@ -18,12 +18,10 @@ class HealthStatus(models.TextChoices):
     HEALTHY = "HEALTHY", "Healthy"
     SICK = "SICK", "Sick"
     TREATING = "TREATING", "Treating"
-    DEAD = "DEAD", "Dead"
+    DECEASED = "DECEASED", "Deceased"
 
 
 class Livestock(ULIDModel):
-    # id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    # owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="livestock")
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="livestock", to_field="id", db_column="owner_id")
     tag_id = models.CharField(max_length=50, unique=True)
     category = models.CharField(max_length=50)
