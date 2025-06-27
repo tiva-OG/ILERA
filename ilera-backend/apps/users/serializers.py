@@ -50,9 +50,11 @@ class UserSignupSerializer(serializers.ModelSerializer):
         fields = ["phone", "first_name", "last_name", "email", "role", "password", "otp_message"]
 
     def create(self, validated_data):
+        print("CREATING USER!")
         # password = validated_data.pop("password")
         phone = validated_data.get("phone")
         # validate existing user here! it doesn't sit well in PhoneNumberField
+        print("VALIDATED DATA:", validated_data)
 
         if User.objects.filter(phone=phone).exists():
             raise serializers.ValidationError("This phone number is already registered with ILERA.")

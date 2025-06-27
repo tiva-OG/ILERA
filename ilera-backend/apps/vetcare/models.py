@@ -1,4 +1,3 @@
-import uuid
 from django.db import models
 from django.utils import timezone
 
@@ -54,8 +53,8 @@ class CareSession(ULIDModel):
         self.save()
 
     def conclude(self):
-        self.status = None
-        self.has_history = True
+        # self.has_history = True
+        self.status = SessionStatus.CONCLUDED
         self.ended_at = timezone.now()
         self.save()
 

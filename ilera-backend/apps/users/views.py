@@ -6,7 +6,7 @@ from drf_yasg.utils import swagger_auto_schema
 from rest_framework import filters, generics, permissions, status, views
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 
@@ -34,6 +34,8 @@ class UserSignupView(generics.CreateAPIView):
     permission_classes = [permissions.AllowAny]
 
     def create(self, request, *args, **kwargs):
+        print("CREATING USER!")
+        print("REQUEST DATA:", request.data)
         response = super().create(request, *args, **kwargs)
         return Response({"user": response.data}, status=201)
 
@@ -78,7 +80,7 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
     queryset = User.objects.all()
     serializer_class = UserProfileSerializer
     permission_classes = [permissions.IsAuthenticated]
-    parser_classes = [MultiPartParser, FormParser]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get_object(self):
         return self.request.user
@@ -93,10 +95,10 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
 
         # update the nested profile provided
         profile_data = {}
-        profile_prefix = "profile"
+        profile_keys = ["bio", "location", "profile_picture", "license_number", "is_available"]
 
         for key in request.data:
-            if key.startswith(profile_prefix) or key == "profile_picture":
+            if key in profile_keys:
                 profile_data[key] = request.data[key]
 
         if profile_data:
@@ -189,16 +191,15 @@ class LogoutView(views.APIView):
 
 
 # ========================================== List Vets (for Farmers) ==========================================
-
-
 class VetListView(generics.ListAPIView):
     permission_classes = [IsFarmer]
     serializer_class = VetListSerializer
 
     def get_queryset(self):
         farmer = self.request.user.farmer_profile
+
         queryset = VetProfile.objects.select_related("user").prefetch_related(
-            Prefetch("sessions", queryset=CareSession.objects.filter(farmer=farmer), to_attr="sessions_with_farmer")
+            Prefetch("sessions", queryset=CareSession.objects.filter(farmer=farmer).order_by("-created_at"), to_attr="sessions_with_farmer")
         )
 
         return queryset

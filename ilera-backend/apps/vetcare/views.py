@@ -31,13 +31,14 @@ class CareSessionViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
         return CareSession.objects.none()
 
     def perform_create(self, serializer):
+        print("CREATING A VETCARE REQUEST")
         serializer.save()
 
     @action(detail=True, methods=["POST"])
     def accept(self, request, pk=None):
         session = self.get_object()
 
-        # add control that session has to be pending
+        # add control that session has to be PENDING
         if session.status != SessionStatus.PENDING:
             return Response({"error": "Bad Request"}, status=400)
 
@@ -51,7 +52,7 @@ class CareSessionViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
     def conclude(self, request, pk=None):
         session = self.get_object()
 
-        # add control that session has to accepted
+        # add control that session has to be ACCEPTED
         if session.status != SessionStatus.ACCEPTED:
             return Response({"error": "Bad Request"}, status=400)
 
@@ -88,7 +89,6 @@ class CareSessionViewSet(RoleBasedPermissionMixin, viewsets.ModelViewSet):
 
         session.decline()
         return Response({"status": "declined"})
-
 
     # TODO: remove action
     @action(detail=True, methods=["POST"])

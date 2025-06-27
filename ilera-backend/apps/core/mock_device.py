@@ -3,7 +3,7 @@ import random
 import time
 import uuid
 
-BASE_URL = "https://ilera-server.onrender.com/api/v1/sensors/"
+BASE_URL = "http://localhost:8000/api/v1/sensors/"
 DEVICE_ID = input("Please enter the device id: ")
 
 
