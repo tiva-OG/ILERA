@@ -49,24 +49,19 @@ class UserSignupSerializer(serializers.ModelSerializer):
         model = User
         fields = ["phone", "first_name", "last_name", "email", "role", "password", "otp_message"]
 
+    def validate_phone(self, value):
+        if User.objects.filter(phone=value).exists():
+            raise serializers.ValidationError("Phone number already registered with ILERA.")
+        return value
+
     def create(self, validated_data):
-        print("CREATING USER!")
-        # password = validated_data.pop("password")
-        phone = validated_data.get("phone")
-        # validate existing user here! it doesn't sit well in PhoneNumberField
-        print("VALIDATED DATA:", validated_data)
+        phone = validated_data["phone"]
 
-        if User.objects.filter(phone=phone).exists():
-            raise serializers.ValidationError("This phone number is already registered with ILERA.")
-
-        if PendingUser.objects.filter(phone=phone).exists():
-            PendingUser.objects.filter(phone=phone).delete()
-
-        # validated_data["password"] = hashers.make_password(validated_data["password"])
+        PendingUser.objects.filter(phone=phone).delete()
 
         pending_user = PendingUser.objects.create(**validated_data)
 
-        # generate and send otp
+        # generate and send OTP
         message = OTPService.send_otp(pending_user.phone, email=pending_user.email)
         pending_user.otp_message = message
 
@@ -81,38 +76,35 @@ class UserVerifyOTPSerializer(serializers.Serializer):
     code = serializers.CharField()
 
     def validate(self, attrs):
-        phone = normalize_nigerian_phone(attrs.get("phone"))
-        code = attrs.get("code")
+        phone = normalize_nigerian_phone(attrs["phone"])
+        code = attrs["code"]
 
         try:
             pending_user = PendingUser.objects.get(phone=phone)
         except PendingUser.DoesNotExist:
-            raise serializers.ValidationError("No pending signup found.")
+            raise serializers.ValidationError({"phone": "No pending signup found for this phone."})
 
         if pending_user.is_expired():
-            raise serializers.ValidationError("OTP expired.")
+            raise serializers.ValidationError({"code": "OTP has expired."})
 
         result = OTPService.verify_otp(phone, code)
 
-        if result["success"]:
-            if User.objects.filter(phone=pending_user.phone).exists():
-                raise serializers.ValidationError("User already exists.")
+        if not result["success"]:
+            raise serializers.ValidationError({"code": result["detail"]})
 
-            user = User.objects.create_user(
-                phone=pending_user.phone,
-                email=pending_user.email,
-                first_name=pending_user.first_name,
-                last_name=pending_user.last_name,
-                role=pending_user.role,
-            )
-            user.set_password(pending_user.password)
-            user.is_active = True
-            user.save()
-            pending_user.delete()
+        user = User.objects.create_user(
+            phone=pending_user.phone,
+            email=pending_user.email,
+            first_name=pending_user.first_name,
+            last_name=pending_user.last_name,
+            role=pending_user.role,
+        )
+        user.set_password(pending_user.password)
+        user.is_active = True
+        user.save()
+        pending_user.delete()
 
-            return attrs
-        else:
-            raise serializers.ValidationError(result["detail"])
+        return attrs
 
 
 # ========================================== Farmer Onboarding ==========================================
@@ -135,17 +127,17 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     password = serializers.CharField()
 
     def validate(self, attrs):
-        phone = normalize_nigerian_phone(attrs.get("phone"))
-        password = attrs.get("password")
+        phone = normalize_nigerian_phone(attrs["phone"])
+        password = attrs["password"]
 
         user = authenticate(request=self.context.get("request"), phone=phone, password=password)
 
         if not user:
-            raise serializers.ValidationError("Invalid credentials")
+            raise serializers.ValidationError({"invalid": ["Invalid phone or password."]})
 
         if not user.is_active:
             OTPService.send_otp(phone)
-            raise serializers.ValidationError("OTP sent. Please verify to activate your account.")
+            raise serializers.ValidationError({"invalid": ["Account not active. OTP sent for verification."]})
 
         refresh = self.get_token(user)
         access = refresh.access_token

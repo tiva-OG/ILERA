@@ -5,6 +5,7 @@ from apps.core.models import ULIDModel
 from apps.livestock.models import Livestock
 
 
+
 class SensorDevice(ULIDModel):
     device_id = models.CharField(max_length=100, unique=True)
     name = models.CharField(max_length=100, blank=True)
@@ -17,6 +18,7 @@ class SensorDevice(ULIDModel):
         self.save()
 
     def __str__(self):
+        
         return f"{self.device_id} - {self.livestock.get_fullname()}"
 
 

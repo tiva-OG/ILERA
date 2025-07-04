@@ -17,7 +17,7 @@ class LivestockListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Livestock
-        fields = ["id", "tag_id", "category", "breed", "health_status", "device_id"]
+        fields = ["id", "tag_id", "category", "breed", "health_status", "device_id", "is_test"]
 
     def get_device_id(self, obj):
         return obj.sensor_device.device_id if hasattr(obj, "sensor_device") else None
@@ -30,7 +30,7 @@ class LivestockDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Livestock
-        fields = ["id", "tag_id", "category", "breed", "gender", "age", "registered_at", "health_status", "device_id", "records"]
+        fields = ["id", "tag_id", "category", "breed", "gender", "age", "registered_at", "health_status", "device_id", "records", "is_test"]
         read_only_fields = ["id", "registered_at"]
 
     def get_age(self, obj):
@@ -46,7 +46,7 @@ class LivestockWriteSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Livestock
-        fields = ["id", "tag_id", "category", "breed", "gender", "age", "sensor_id"]
+        fields = ["id", "tag_id", "category", "breed", "gender", "age", "sensor_id", "is_test"]
         read_only_fields = ["id"]
 
     def to_representation(self, instance):

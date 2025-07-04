@@ -8,6 +8,7 @@ class NotificationConsumer(AsyncWebsocketConsumer):
 
         if not user.is_authenticated:
             self.close()
+            return
 
         self.group_name = f"user_{user.id}"
 
@@ -16,7 +17,7 @@ class NotificationConsumer(AsyncWebsocketConsumer):
 
     async def disconnect(self, close_code):
         if hasattr(self, "group_name"):
-            await self.channel_layer.group_discard(self.group_name, self.channel_layer_alias)
+            await self.channel_layer.group_discard(self.group_name, self.channel_name)
 
     async def notify(self, event):
         await self.send(text_data=json.dumps(event["notification"]))

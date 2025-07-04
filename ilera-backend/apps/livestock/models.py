@@ -31,6 +31,7 @@ class Livestock(ULIDModel):
     image = models.ImageField(upload_to="livestock_images/", null=True, blank=True)
     registered_at = models.DateTimeField(auto_now_add=True)
     health_status = models.CharField(max_length=20, choices=HealthStatus.choices, default=HealthStatus.HEALTHY)
+    is_test = models.BooleanField(default=False)
 
     @property
     def age(self):

@@ -48,7 +48,7 @@ class UserVerifyOTPView(views.APIView):
         serializer = UserVerifyOTPSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        return Response({"detail": "OTP verified successfully."}, status=status.HTTP_200_OK)
+        return Response({"detail": "OTP verified successfully."}, status=200)
 
 
 # ========================================== Onboard user ==========================================
@@ -58,16 +58,21 @@ class UserOnboardingView(views.APIView):
     def patch(self, request, *args, **kwargs):
         phone = request.data.get("phone")
         profile_data = request.data.get("profile")
-        user = User.objects.get(phone=normalize_nigerian_phone(phone))
+
+        if not phone or not profile_data:
+            return Response({"detail": "Phone and profile data are required."}, status=400)
+
+        try:
+            user = User.objects.get(phone=normalize_nigerian_phone(phone))
+        except User.DoesNotExist:
+            return Response({"detail": "User not found."}, status=404)
 
         if user.is_farmer:
-            farmer_profile = user.farmer_profile
-            serializer = FarmerOnboardingSerializer(farmer_profile, data=profile_data, partial=True)
+            serializer = FarmerOnboardingSerializer(user.farmer_profile, data=profile_data, partial=True)
         elif user.is_vet:
-            vet_profile = user.vet_profile
-            serializer = VetOnboardingSerializer(vet_profile, data=profile_data, partial=True)
+            serializer = VetOnboardingSerializer(user.vet_profile, data=profile_data, partial=True)
         else:
-            return Response({"detail": "User profile not found."}, status=404)
+            return Response({"detail": "Invalid user role."}, status=400)
 
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -181,7 +186,7 @@ class LogoutView(views.APIView):
 
             # also blacklist access token
 
-            response = Response({"detail": "Logout successful."}, status=status.HTTP_205_RESET_CONTENT)
+            response = Response(status=204)
             response.delete_cookie("refresh_token")
 
             return response

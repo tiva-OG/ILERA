@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework_simplejwt.token_blacklist",
     # local
+    "apps.core",
     "apps.livestock",
     "apps.notifications",
     "apps.otp",
@@ -128,6 +129,7 @@ REST_FRAMEWORK = {
     "DEFAULT_FILTER_BACKENDS": ("django_filters.rest_framework.DjangoFilterBackend",),
     "DEFAULT_AUTHENTICATION_CLASSES": ("rest_framework_simplejwt.authentication.JWTAuthentication",),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
+    "EXCEPTION_HANDLER": "apps.core.exception_handler.custom_exception_handler",
 }
 
 SIMPLE_JWT = {
@@ -156,3 +158,6 @@ SUPPORT_EMAIL = env("SUPPORT_EMAIL")
 TWILIO_ACCOUNT_SID = env("TWILIO_ACCOUNT_SID")
 TWILIO_AUTH_TOKEN = env("TWILIO_AUTH_TOKEN")
 TWILIO_SENDER_NUMBER = env("TWILIO_SENDER_NUMBER")
+
+
+# ENABLE_MOCK_SENSORS = bool(int(os.getenv("ENABLE_MOCK_SENSORS", "1")))  # 0/1 in env

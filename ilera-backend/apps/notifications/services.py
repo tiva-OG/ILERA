@@ -35,7 +35,7 @@ class VetcareNotificationDispatcher:
         elif self.status == SessionStatus.DECLINED:
             self._notify_request_declined()
 
-        elif self.status is None and self.has_history:
+        elif self.status == SessionStatus.CONCLUDED:
             self._notify_session_concluded()
 
         # Easily add more:
@@ -97,15 +97,16 @@ class VetcareNotificationDispatcher:
         body = f"The session between {self.farmer_name} and Dr. {self.vet_name} has concluded."
 
         self._send(
-            actor=self.farmer,
-            receiver=self.vet,
+            actor=self.vet,
+            receiver=self.farmer,
             type=NotificationType.CARE_REQUEST_CONCLUDED,
             title="Vetcare Session Concluded",
             body=body,
         )
+
         self._send(
-            actor=self.vet,
-            receiver=self.farmer,
+            actor=self.farmer,
+            receiver=self.vet,
             type=NotificationType.CARE_REQUEST_CONCLUDED,
             title="Vetcare Session Concluded",
             body=body,
