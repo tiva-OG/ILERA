@@ -7,7 +7,7 @@ from django.utils import timezone
 from apps.livestock.models import Livestock
 from apps.sensors.models import SensorDevice
 
-BASE_URL = os.getenv("SENSOR_POST_URL", "http://localhost:8000/api/v1/sensors/")
+BASE_URL = os.getenv("SENSOR_POST_URL", "https://ilera-0-9-8.onrender.com/api/v1/sensors/")
 POST_INTERVAL = float(os.getenv("MOCK_POST_EVERY", "2"))  # seconds
 AUTH_TOKEN = os.getenv("API_TOKEN")  # optional
 
@@ -37,6 +37,7 @@ def run_forever() -> None:
             print("PAYLOAD:", payload)
             try:
                 r = requests.post(BASE_URL, json=payload)
+                print(f"Error - {r.json()}")
                 print(f"[MockLoop] ✅ {r.status_code} — {payload}")
             except Exception as exc:
                 # network hiccups, endpoint down, etc.

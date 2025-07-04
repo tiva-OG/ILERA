@@ -11,6 +11,7 @@ class SensorReadingSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         device_id = validated_data.pop("device_id")
+
         try:
             device = SensorDevice.objects.get(device_id=device_id)
         except SensorDevice.DoesNotExist:
